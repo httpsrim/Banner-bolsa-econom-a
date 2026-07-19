@@ -138,7 +138,7 @@ hilo_actualizacion.start()
 # Cierra el programa presionando la tecla Escape
 root.bind("<Escape>", lambda e: root.destroy())
 
-#  Se cerrará solo a los 60 segundos (1 minuto) de abrirse
-root.after(1000000, root.destroy) 
+#  Se cerrará solo a los 60 segundos (1 minuto) de abrirse, esto es a la hora de hacer pruebas en PCs
+#root.after(1000000, root.destroy) 
 
 root.mainloop()
