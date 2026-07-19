@@ -91,7 +91,7 @@ for dato in datos_iniciales:
 def desplazar_texto():
     # Movemos todos los elementos x pixeles a la izquierda
     for id_txt in elementos_canvas:
-        canvas.move(id_txt, -5, 0)
+        canvas.move(id_txt, -20, 0)
     
     # Comprobamos si alguno se ha salido de la pantalla por la izquierda
     for id_txt in elementos_canvas:
