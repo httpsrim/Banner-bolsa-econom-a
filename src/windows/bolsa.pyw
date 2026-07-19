@@ -1,5 +1,17 @@
+import sys
+import subprocess
+
+# =========================================================================
+# Auto-instalador inteligente para entornos de Windows
+# =========================================================================
+try:
+    import yfinance as yf
+except ModuleNotFoundError:
+    # Si el Python que ejecuta este archivo no tiene yfinance, se lo instala a sí mismo
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "yfinance"])
+    import yfinance as yf
+
 import tkinter as tk
-import yfinance as yf
 import threading
 import time
 
@@ -29,7 +41,6 @@ def obtener_datos():
             
             simbolo = t.replace(".MC", "")
             
-            # Selector inteligente de moneda/unidad para Windows
             if t.startswith("^"):
                 moneda = " pts"
             elif t.endswith(".MC"):
@@ -37,7 +48,6 @@ def obtener_datos():
             else:
                 moneda = "$"
             
-            # Lógica de colores según la variación
             if variacion > 0.005:
                 color = "#00FF00"  # Verde
                 texto = f"{simbolo}: {precio_actual:.2f}{moneda} (+{variacion:.2f}%) ▲"
@@ -54,75 +64,81 @@ def obtener_datos():
             
     return resultados
 
-# Configurar la ventana gráfica (Pantalla Completa Nativa en Windows)
+# --- CONFIGURAR VENTANA GRÁFICA INTERFAZ ---
 root = tk.Tk()
-root.attributes("-fullscreen", True) # Modo pantalla completa absoluto en Windows
-root.attributes("-topmost", True)   # Siempre visible por encima de todo
+root.attributes("-fullscreen", True) 
+root.attributes("-topmost", True)   
+root.configure(bg="black")
 
 ancho_pantalla = root.winfo_screenwidth()
 alto_pantalla = root.winfo_screenheight()
-root.configure(bg="black")
 
-# Preparar el lienzo (Canvas)
 canvas = tk.Canvas(root, bg="black", highlightthickness=0, height=alto_pantalla)
 canvas.pack(fill="both", expand=True)
 
 elementos_canvas = []
-datos_iniciales = obtener_datos()
+animacion_lista = False
 
-# Empezamos a dibujar en el borde derecho
-pos_x = ancho_pantalla
+def inicializar_cinta(datos_iniciales):
+    global animacion_lista
+    
+    pos_x = ancho_pantalla
+    for dato in datos_iniciales:
+        id_txt = canvas.create_text(pos_x, alto_pantalla // 2, text=dato["texto"], 
+                                  font=("Consolas", 200, "bold"), fill=dato["color"], anchor="w")
+        elementos_canvas.append(id_txt)
 
-for dato in datos_iniciales:
-    id_txt = canvas.create_text(pos_x, alto_pantalla // 2, text=dato["texto"], 
-                              font=("Consolas", 200, "bold"), fill=dato["color"], anchor="w")
-    elementos_canvas.append(id_txt)
+        root.update_idletasks()
+        bbox = canvas.bbox(id_txt)
+        
+        if bbox:
+            pos_x = bbox[2] + 50  
+        else:
+            pos_x += 2000 
 
-    bbox = canvas.bbox(id_txt)
-    pos_x = bbox[2] + 50  # Espacio de 50 píxeles entre acciones
+    animacion_lista = True
+    desplazar_texto()
 
-# Función de desplazamiento continuo
 def desplazar_texto():
+    if not animacion_lista:
+        return
+        
     for id_txt in elementos_canvas:
-        canvas.move(id_txt, -5, 0)
+        canvas.move(id_txt, -20, 0)
     
     for id_txt in elementos_canvas:
         bbox = canvas.bbox(id_txt)
         if bbox and bbox[2] < 0: 
-            max_x = max(canvas.bbox(i)[2] for i in elementos_canvas)
+            max_x = max(canvas.bbox(i)[2] for i in elementos_canvas if canvas.bbox(i))
             nuevo_x = max(max_x, ancho_pantalla) + 50  
             canvas.coords(id_txt, nuevo_x, alto_pantalla // 2)
 
     root.after(20, desplazar_texto)
 
-# Aplicar las actualizaciones en la interfaz
 def aplicar_actualizaciones(nuevos_datos):
     for i, dato in enumerate(nuevos_datos):
         if i < len(elementos_canvas):
             canvas.itemconfig(elementos_canvas[i], text=dato["texto"], fill=dato["color"])
 
-# Hilo de actualización cada 5 minutos
-def actualizar_en_segundo_plano():
+def ejecucion_segundo_plano():
+    datos = obtener_datos()
+    root.after(0, inicializar_cinta, datos)
+    
     while True:
         time.sleep(300) 
         try:
             nuevo_texto = obtener_datos()
-            # Corregido: Ahora apunta correctamente a aplicar_actualizaciones
             root.after(0, aplicar_actualizaciones, nuevo_texto)
         except Exception:
             pass 
 
-# Iniciar el hilo
-hilo_actualizacion = threading.Thread(target=actualizar_en_segundo_plano, daemon=True)
+hilo_actualizacion = threading.Thread(target=ejecucion_segundo_plano, daemon=True)
 hilo_actualizacion.start()
-
-desplazar_texto()
 
 # Cierra el programa presionando la tecla Escape
 root.bind("<Escape>", lambda e: root.destroy())
 
-# SEGURIDAD WINDOWS: Se cierra solo al minuto para hacer pruebas sin quedarte atrapado. 
-# (Quita la línea de abajo cuando verifiques que te funciona bien).
-root.after(60000, root.destroy) 
+#  Se cerrará solo a los 60 segundos (1 minuto) de abrirse
+root.after(1000000, root.destroy) 
 
 root.mainloop()
