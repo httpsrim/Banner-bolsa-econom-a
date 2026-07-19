@@ -139,6 +139,6 @@ hilo_actualizacion.start()
 root.bind("<Escape>", lambda e: root.destroy())
 
 #  Se cerrará solo a los 60 segundos (1 minuto) de abrirse, esto es a la hora de hacer pruebas en PCs
-#root.after(1000000, root.destroy) 
+#root.after(600000, root.destroy) 
 
 root.mainloop()
